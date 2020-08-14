@@ -1,0 +1,32 @@
+{
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/sendnow",
+        "function": "sendnow"
+      },
+      {
+        "source": "/addjob",
+        "function": "addjob"
+      },
+      {
+        "source": "/getinfo",
+        "function": "getinfo"
+      },
+      {
+        "source": "/deletejob",
+        "function": "deletejob"
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

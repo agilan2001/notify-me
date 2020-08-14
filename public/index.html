@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta
+  name="description"           
+  content="Notify Me browser based notification reminder and email alerts">
+  <meta name="theme-color" content="ornage"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1,height=device-height">
+
+  <script src="https://kit.fontawesome.com/86a47226cf.js" crossorigin="anonymous"></script>
+
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+    integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+  <link rel="stylesheet" href="style.css">
+  <title>Notify-Me-AgiApps</title>
+
+</head>
+
+<body>
+
+
+  <div id="main_wrapper">
+    <i id="home_btn" class="fa fa-home" onclick="scroll_to(0)"></i>
+    <div id="home">
+      <div id="head_flex">
+        <img alt="bell-img" id="bell_img" src="images/bell.png">
+        <div id="head_tag">
+          <h1 id="head_ttl">Notify-Me</h1>
+          <h2 id="head_ttl2">Browser Based<br> Notification Reminder<br>and Email Alerts</h2><br>
+          <button onclick="scroll_to(1)" class="btn btn-success"><i class="fa fa-plus-circle"></i> ADD
+            REMINDER</button>
+          <button onclick="scroll_to(2)" class="btn btn-primary"><i class="fa fa-history"></i>
+            SCHEDULE</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div id="add_rem_div">
+      <h2 style="color:blue" class="text-center font-weight-bold">ADD REMINDER</h2><br>
+      <div id="per_req">
+        You need to ALLOW<br>Browser Notification for us ...<br>
+        <button id="per_cancel" class="btn btn-danger" onclick="per_cancel_clk()">CANCEL</button> <button
+          onclick="per_ok_clk()" id="per_ok" class="btn btn-success">OK</button>
+      </div>
+      <div id="done_msg">
+        <i style="font-size: 100px;" id="done_load" class="fa fa-circle-o-notch fa-spin"></i>
+        <div id="done_cont">
+          SUCCESS<br>You will be NOTIFIED...<br>
+          <button onclick="done_clk()" id="done_ok" class="btn btn-primary">OK</button>
+        </div>
+      </div>
+      <table id="form_tbl" style="margin: auto; width: fit-content;">
+
+        <tr>
+          <td><i class="fa fa-calendar"></i></td>
+          <td><input id="date_ctl" type="date"></td>
+        </tr>
+        <tr>
+          <td><i class="fa fa-clock"></i></td>
+          <td><input id="time_ctl" type="time"></td>
+        </tr>
+        <tr id="time_err" class="form_error">
+          <td colspan="2">* Atleast 2 minutes ahead</td>
+        </tr>
+        <tr>
+          <td><i class="fa fa-send"></i></td>
+          <td><input id="mes_ctl" type="text" placeholder="Optional Message < 25 characters" maxlength="25"></td>
+        </tr>
+        <tr>
+          <td><i class="fa fa-envelope"></i></td>
+          <td><input id="email_txt" type="email" placeholder="Optional Mail ID (for Email ALERT)" autocomplete="email">
+          </td>
+        </tr>
+        <tr id="mail_err" class="form_error">
+          <td colspan="2">* Invalid Email</td>
+        </tr>
+        <tr>
+
+          <td colspan="2" align="center"><button class="btn btn-success font-weight-bold" style="font-size:1.5em"
+              id="notify_btn" onclick="notify_clk()"><i class="fa fa-bell"></i> NOTIFY</button></td>
+        </tr>
+      </table>
+
+    </div>
+    <div id="hist">
+      <h2 style="color:blue" class="text-center font-weight-bold">SCHEDULE</h2>
+      <div id="jobs_list" class="flex-container">
+        <div style="color:white;font-size: 25px;" class="text-center font-weight-bold">
+        -----------<br>NO<br> RECORDS <br>YET<br>-----------
+      </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+
+  <script src="/__/firebase/7.15.5/firebase-app.js"></script>
+  <script src="/__/firebase/7.15.5/firebase-messaging.js"></script>
+  <script src="/__/firebase/init.js"></script>
+  <script>
+
+    var cur_sect = 0;
+    set_date();
+
+    const messaging = firebase.messaging();
+    navigator.serviceWorker.register('firebase-messaging-sw.js', {
+        scope: '.' 
+    });
+
+
+    var job_data = [];
+    if (Notification.permission == "granted") {
+      get_jobs_list();
+
+    }
+
+
+    function set_date() {
+      var date = new Date(Date.now() + 2 * 60 * 1000);
+      date_ctl.value = `${date.getFullYear()}-${("0" + (date.getMonth() + 1)).slice(-2)}-${("0" + date.getDate()).slice(-2)}`
+      time_ctl.value = `${("0" + date.getHours()).slice(-2)}:${("0" + date.getMinutes()).slice(-2)}`
+      mes_ctl.value = "";
+    }
+
+    function notify_clk() {
+
+      if (Notification.permission != "granted") {
+        $("#per_req").fadeIn(300)
+        return;
+      } else {
+        save_job();
+      }
+
+    }
+
+    function save_job() {
+      $("#time_err").hide();
+      $("#mail_err").hide();
+      var sel_date = new Date(date_ctl.value + " " + time_ctl.value);
+      var er = false;
+      if (sel_date - Date.now() < 60 * 1000) {
+        $("#time_err").show(500);
+        er = true;
+      }
+      if (email_txt.value && !/^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i.test(email_txt.value)) {
+        $("#mail_err").show(500);
+        er = true;
+      }
+      if (er) return;
+
+      $("#done_load").show();
+      $("#done_cont").hide();
+      $("#done_msg").fadeIn(300);
+      messaging.getToken()
+        .then(function (token) {
+          //console.log(token)
+          fetch('https://notify-me-agiapp.web.app/addjob', {
+            method: 'post',
+            body: JSON.stringify({
+              "time": parseInt(sel_date / 60000),
+              "token": token,
+              "mes": mes_ctl.value,
+              "mail": email_txt.value ?? false
+            }),
+            headers: {
+              'Content-Type': 'application/json'
+            }
+
+          }).then((id) => {
+            id.text().then((val) => {
+              job_data = job_data || [];
+              job_data.push({
+                "time": parseInt(sel_date / 60000),
+                "mes": mes_ctl.value,
+                "info": val
+              });
+              fill_jobs_list();
+              $("#done_load").hide();
+              $("#done_cont").fadeIn(300);
+            })
+
+          })
+
+        })
+
+
+    }
+
+
+    messaging.onMessage(function (payload) {
+      get_jobs_list();
+      var notif_info = JSON.parse(payload.data.notification);
+      var title = "Notify-Me ALERT ⏰";
+      var options = {
+        icon: "",
+        body: notif_info.body,
+        icon:"https://dl.dropbox.com/s/lajvp5srja4h4ny/bell-small.png",
+        actions: [
+          { action: 'b', title: '👍DONE' },
+          { action: 'a', title: 'Notify-Me' }
+        ]
+      }
+      navigator.serviceWorker.ready.then(function (registration) {
+        registration.showNotification(title, options);
+      });
+
+    });
+
+    function get_jobs_list() {
+      messaging.getToken().then(token => {
+        fetch('https://notify-me-agiapp.web.app/getinfo', {
+          method: 'post',
+          body: JSON.stringify({
+            "token": token,
+          }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }).then(info => info.json()).then(data => {
+          job_data = data;
+          fill_jobs_list();
+        })
+      })
+
+    }
+
+    function fill_jobs_list() {
+      if (!job_data) return;
+      var cont = "";
+      job_data.forEach(function (x, i) {
+        var time_no_sec=new Date(x.time * 60000).toLocaleTimeString("en-US").split("");
+        time_no_sec.splice(-6,3);
+        cont = `
+        <div class = ${!x.info ? "job_done" : "job_not"}>
+          ${!x.info ? "" : "<span class='rem_del' onclick='delete_rem(" + i + ")' >&times;</span>"}
+          <div class="job_ttl">${x.mes || "No Title"}</div>
+          <div class="job_date">
+            <i class="fa fa-clock"></i>
+            ${time_no_sec.join("")}<br>
+            <i class="fa fa-calendar"></i>
+            &nbsp;${new Date(x.time * 60000).toLocaleDateString("en-US")}</div>
+          </div>
+        `+ cont;
+      })
+      jobs_list.innerHTML = cont;
+
+    }
+
+    function scroll_to(sect) {
+
+
+      var sect_id = ["#home", "#add_rem_div", "#hist"]
+
+      $(sect_id[sect]).css({ "left": "100vw", "display": "block" });
+      $("#home_btn").delay(500).animate({
+        right: sect ? "20px" : "-60px"
+      }, 500)
+
+      $(sect_id[cur_sect]).animate({
+        left: "-100vw"
+      }, 500, function () {
+        $(sect_id[cur_sect]).css("display", "none");
+        cur_sect = sect;
+      })
+
+      $(sect_id[sect]).animate({
+        left: "0vw"
+      }, 500)
+      /*
+            $(sect_id[cur_sect]).fadeOut(300, () => {
+              $(sect_id[sect]).fadeIn(300);
+              cur_sect = sect;
+            })
+      
+      */
+
+
+    }
+
+    function per_cancel_clk() {
+      $("#per_req").fadeOut(300);
+    }
+
+    function per_ok_clk() {
+      per_cancel_clk();
+      messaging.requestPermission().then(() => save_job())
+        .catch(function (err) {
+          console.log("Unable to get permission to notify.", err);
+        });
+
+    }
+
+    function done_clk() {
+      $("#done_msg").fadeOut(300, () => {
+        scroll_to(2);
+        set_date();
+      });
+
+    }
+
+    function delete_rem(i) {
+
+      fetch('https://notify-me-agiapp.web.app//deletejob', {
+        method: 'post',
+        body: JSON.stringify({
+          "del_id": job_data[i]["info"]
+        }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      job_data.splice(i, 1);
+      fill_jobs_list();
+    }
+  </script>
+</body>
+
+</html>

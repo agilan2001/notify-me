@@ -1,0 +1,16 @@
+{
+    "background_color": "orange",
+    "description": "Browser Based Notification Reminder with Email Alerts",
+    "display": "standalone",
+    "theme_color": "orange",
+    "icons": [
+      {
+        "src": "images/bell-small.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      }
+    ],
+    "name": "Notify-Me",
+    "short_name": "Notify-Me",
+    "start_url": "/index.html"
+  }

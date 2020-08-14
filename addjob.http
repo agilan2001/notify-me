@@ -1,0 +1,8 @@
+POST  https://notify-me-agiapp.web.app/addjob
+Content-Type:application/json
+
+{
+    "time":47,
+    "token":"dJObbpI55vcvhZAQGApltX:APA91bGx1D6xQyTQZOx98ejr5qSffg4s8lXHJVOdY6pQhshyEhlDkC_wRRQ0ustEqRSAYy_60TX9Kg5jH66Kmv5trekx5cFwCTlCwYjJeh5V-i-AT0aHvgj95Hm25eH7EF-9-YX8GzYx",
+    "mes":"hi"
+}
